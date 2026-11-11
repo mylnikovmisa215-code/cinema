@@ -35,7 +35,12 @@ class AuthController extends Controller
         if($user&&Hash::check($request->password, $user->password)){
 
             Auth::login($user);
-            return redirect()->route('show.profile')->with('succes', 'Добро пожаловать в личный кабинет');
+             if ($user->role === 'admin'){
+                return redirect()->route('show.admin')->with('success', 'Добро пожаловать в кабинет администратора!');
+            }else{
+                return redirect()->route('show.profile')->with('success', 'Добро пожаловать в кабинет пользователя!');
+            }
+
 
         }return redirect()->back()->with('success', 'Неверный логин или пароль');
         
