@@ -1,119 +1,207 @@
-
 @extends('layout.index')
 
 @section('main')
 
-    <h1>Личный кабинет</h1>
+    {{-- Заголовок --}}
+    <div class="mb-5">
+        <p class="text-uppercase mb-2"
+           style="color: #8f2929; letter-spacing: 3px; font-size: 12px;">
+            Personal space
+        </p>
 
-    <h2>Мои билеты</h2>
+        <h1 class="display-5 fw-bold">
+            Аккаунт<span style="color: #8f2929;">.</span>
+        </h1>
+
+        <p class="text-muted">
+            Твои бронирования и билеты
+        </p>
+
+        <div style="width: 60px; height: 3px; background: #8f2929;"></div>
+    </div>
+
+    <h4 class="text-uppercase mb-4" style="letter-spacing: 1px;">
+        Мои билеты
+    </h4>
 
     @if ($tickets->isEmpty())
 
-        <p>У вас пока нет забронированных билетов.</p>
+        <div class="card p-5 text-center">
+            <h5>Билетов пока нет</h5>
+
+            <p class="text-muted mb-4">
+                Ты ещё не забронировал ни одного места.
+            </p>
+
+            <div>
+                <a href="{{ route('catalog') }}" class="btn btn-primary px-4">
+                    Перейти к афише
+                </a>
+            </div>
+        </div>
 
     @else
 
-        @foreach ($tickets as $ticket)
+        <div class="row g-4">
 
-            <div style="
-                border: 1px solid #ccc;
-                border-radius: 8px;
-                padding: 15px;
-                margin-bottom: 15px;
-                max-width: 500px;
-            ">
+            @foreach ($tickets as $ticket)
 
-                <h3>{{ $ticket->screening->movie->title }}</h3>
+                <div class="col-12 col-lg-6">
 
-                <p>
-                    <strong>Дата и время:</strong>
-                    {{ $ticket->screening->start_time->format('d.m.Y H:i') }}
-                </p>
+                    <div class="card h-100 overflow-hidden">
 
-                <p>
-                    <strong>Зал:</strong>
-                    {{ $ticket->screening->hall->name_hall }}
-                </p>
+                        {{-- Верхняя часть билета --}}
+                        <div class="p-4"
+                             style="border-bottom: 1px dashed #555;">
 
-                <p>
-                    <strong>Ряд:</strong> {{ $ticket->row }}
-                </p>
+                            <div class="d-flex justify-content-between align-items-start gap-3">
 
-                <p>
-                    <strong>Место:</strong> {{ $ticket->seat }}
-                </p>
+                                <div>
+                                    <p class="text-uppercase mb-2"
+                                       style="color: #8f2929; font-size: 11px; letter-spacing: 2px;">
+                                        Underground cinema / Ticket
+                                    </p>
 
-                <p>
-                    <strong>Стоимость:</strong>
-                    {{ $ticket->screening->price }} руб.
-                </p>
+                                    <h4 class="fw-bold mb-0">
+                                        {{ $ticket->screening->movie->title }}
+                                    </h4>
+                                </div>
 
-                <p>
-                    <strong>Статус оплаты:</strong>
+                                @if ($ticket->is_paid)
+                                    <span class="badge rounded-0 px-3 py-2"
+                                          style="background: #315b43; color: white;">
+                                        ОПЛАЧЕН
+                                    </span>
+                                @else
+                                    <span class="badge rounded-0 px-3 py-2"
+                                          style="background: #8f2929; color: white;">
+                                        НЕ ОПЛАЧЕН
+                                    </span>
+                                @endif
 
-                    @if ($ticket->is_paid)
-                        <span style="color: green;">Оплачен</span>
-                    @else
-                        <span style="color: orange;">Ожидает оплаты</span>
-                    @endif
-                </p>
+                            </div>
 
-                @if (!$ticket->is_paid)
+                        </div>
 
-                    <form
-                        action="{{ route('tickets.pay', $ticket->id) }}"
-                        method="POST"
-                        onsubmit="return confirm('Вы действительно хотите оплатить этот билет?');"
-                        style="margin-bottom: 10px;"
-                    >
-                        @csrf
+                        {{-- Информация о билете --}}
+                        <div class="p-4">
 
-                        <button
-                            type="submit"
-                            style="
-                                background: #198754;
-                                color: white;
-                                border: none;
-                                padding: 8px 15px;
-                                border-radius: 5px;
-                                cursor: pointer;
-                            "
-                        >
-                            Оплатить билет
-                        </button>
-                    </form>
+                            <div class="row g-3">
 
-                    <form
-                        action="{{ route('tickets.destroy', $ticket->id) }}"
-                        method="POST"
-                        onsubmit="return confirm('Вы действительно хотите отменить бронирование?');"
-                    >
-                        @csrf
-                        @method('DELETE')
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">
+                                        ДАТА И ВРЕМЯ
+                                    </p>
 
-                        <button
-                            type="submit"
-                            style="
-                                background: #dc3545;
-                                color: white;
-                                border: none;
-                                padding: 8px 15px;
-                                border-radius: 5px;
-                                cursor: pointer;
-                            "
-                        >
-                            Отменить бронирование
-                        </button>
-                    </form>
+                                    <div class="fw-semibold">
+                                        {{ $ticket->screening->start_time->format('d.m.Y H:i') }}
+                                    </div>
+                                </div>
 
-                @endif
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">
+                                        ЗАЛ
+                                    </p>
 
-            </div>
+                                    <div class="fw-semibold">
+                                        {{ $ticket->screening->hall->name_hall }}
+                                    </div>
+                                </div>
 
-        @endforeach
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">
+                                        РЯД
+                                    </p>
+
+                                    <div class="fw-semibold">
+                                        {{ $ticket->row }}
+                                    </div>
+                                </div>
+
+                                <div class="col-6">
+                                    <p class="text-muted small mb-1">
+                                        МЕСТО
+                                    </p>
+
+                                    <div class="fw-semibold">
+                                        {{ $ticket->seat }}
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <hr style="border-color: #353535;">
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted">
+                                    Стоимость билета
+                                </span>
+
+                                <h4 class="fw-bold mb-0">
+                                    {{ $ticket->screening->price }} 
+                                    <span class="text-muted fs-6">руб.</span>
+                                </h4>
+                            </div>
+
+                            {{-- Действия --}}
+                            @if (!$ticket->is_paid)
+
+                                <div class="d-flex flex-wrap gap-2 mt-4">
+
+                                    <form
+                                        action="{{ route('tickets.pay', $ticket->id) }}"
+                                        method="POST"
+                                        onsubmit="return confirm('Вы действительно хотите оплатить этот билет?');"
+                                    >
+                                        @csrf
+
+                                        <button type="submit"
+                                                class="btn btn-primary btn-sm px-3">
+                                            Оплатить билет
+                                        </button>
+                                    </form>
+
+                                    <form
+                                        action="{{ route('tickets.destroy', $ticket->id) }}"
+                                        method="POST"
+                                        onsubmit="return confirm('Вы действительно хотите отменить бронирование?');"
+                                    >
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button type="submit"
+                                                class="btn btn-outline-light btn-sm px-3">
+                                            Отменить
+                                        </button>
+                                    </form>
+
+                                </div>
+
+                            @else
+
+                                <div class="mt-4 small text-muted">
+                                    Билет успешно оплачен.
+                                </div>
+
+                            @endif
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @endforeach
+
+        </div>
 
     @endif
 
-    <a href="{{ route('catalog') }}">Вернуться в каталог</a>
+    <div class="mt-5">
+        <a href="{{ route('catalog') }}"
+           class="btn btn-outline-light btn-sm px-4">
+            ← Вернуться в каталог
+        </a>
+    </div>
 
 @endsection

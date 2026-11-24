@@ -1,6 +1,6 @@
 @extends('layout.index')
 @section('main')
-<h1>Регистрация на сайте</h1>
+<h1>Регистрация</h1>
     <form action="{{route('store.register')}}" method="POST">
         @csrf
         <input type="text" name="login" placeholder="Login">    

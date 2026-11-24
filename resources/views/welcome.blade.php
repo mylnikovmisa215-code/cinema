@@ -1,103 +1,167 @@
-
 @extends('layout.index')
 
 @section('main')
 
-    <h1>Афиша кинотеатра</h1>
+    <div class="mb-5">
+        <p class="text-uppercase mb-2" style="color: #8f2929; letter-spacing: 3px; font-size: 12px;">
+            Independent movie space
+        </p>
 
-    <p>Выберите фильм и ознакомьтесь с его описанием.</p>
+        <h1 class="display-5 fw-bold mb-3">
+            Сейчас актуально<span style="color: #8f2929;">.</span>
+        </h1>
 
-    <hr>
+        <p class="text-muted">
+            Выбирай фильм. Находи свой сеанс. Смотри кино. Клипай эдиты
+        </p>
+
+        <div style="width: 60px; height: 3px; background: #8f2929;"></div>
+    </div>
 
     @forelse ($movies as $movie)
 
-        <div>
-            <h2>{{ $movie->title }}</h2>
+        <div class="card mb-4 overflow-hidden">
+            <div class="row g-0">
 
-            {{-- Постер фильма --}}
-            @if ($movie->images->isNotEmpty())
-                <img
-                    src="{{ asset('storage/' . $movie->images->first()->image_path) }}"
-                    alt="Постер фильма {{ $movie->title }}"
-                    width="200"
-                >
-            @else
-                <p>Постер отсутствует</p>
-            @endif
-
-            <p>
-                <strong>Год выпуска:</strong>
-                {{ $movie->year }}
-            </p>
-
-            <p>
-                <strong>Длительность:</strong>
-                {{ $movie->duration }} мин.
-            </p>
-
-            <p>
-                <strong>Возрастной рейтинг:</strong>
-                {{ $movie->age_rating }}
-            </p>
-
-            <p>
-                <strong>Жанры:</strong>
-
-                @forelse ($movie->genres as $genre)
-                    {{ $genre->name }}@if (!$loop->last), @endif
-                @empty
-                    Не указаны
-                @endforelse
-            </p>
-
-            <p>
-                <strong>Описание:</strong>
-                {{ $movie->description }}
-            </p>
-
-            {{-- Расписание сеансов --}}
-            <h3>Расписание сеансов</h3>
-
-            @forelse ($movie->screenings as $screening)
-
-                <div>
-                    <p>
-                        <strong>Дата и время:</strong>
-                        {{ $screening->start_time->format('d.m.Y H:i') }}
-                    </p>
-
-                    <p>
-                        <strong>Зал:</strong>
-                        {{ $screening->hall->name ?? 'Не указан' }}
-                    </p>
-
-                    <p>
-                        <strong>Формат:</strong>
-                        {{ $screening->format }}
-                    </p>
-
-                    <p>
-                        <strong>Цена билета:</strong>
-                        {{ $screening->price }} руб.
-                    </p>
-
-                    <a href="{{ route('tickets.seats', $screening->id) }}">
-                        Выбрать места
-                    </a>
+                {{-- Постер --}}
+                <div class="col-md-4 col-lg-3">
+                    @if ($movie->images->isNotEmpty())
+                        <img
+                            src="{{ asset('storage/' . $movie->images->first()->image_path) }}"
+                            alt="Постер фильма {{ $movie->title }}"
+                            class="w-100 h-100"
+                            style="object-fit: cover; min-height: 350px; max-height: 480px;"
+                        >
+                    @else
+                        <div class="d-flex align-items-center justify-content-center h-100"
+                             style="min-height: 350px; background: #252525;">
+                            <span class="text-muted">ПОСТЕР ОТСУТСТВУЕТ</span>
+                        </div>
+                    @endif
                 </div>
 
-                <hr>
+                {{-- Информация о фильме --}}
+                <div class="col-md-8 col-lg-9">
+                    <div class="card-body p-4 p-lg-5">
 
-            @empty
-                <p>На данный момент будущих сеансов нет.</p>
-            @endforelse
+                        <p class="text-uppercase mb-2"
+                           style="color: #8f2929; font-size: 11px; letter-spacing: 2px;">
+                            Movie / {{ $movie->year }}
+                        </p>
 
+                        <h2 class="fw-bold mb-3">
+                            {{ $movie->title }}
+                        </h2>
+
+                        <div class="d-flex flex-wrap gap-2 mb-4">
+
+                            <span class="badge rounded-0"
+                                  style="background: #333; color: #d6d0c4;">
+                                {{ $movie->year }}
+                            </span>
+
+                            <span class="badge rounded-0"
+                                  style="background: #333; color: #d6d0c4;">
+                                {{ $movie->duration }} мин.
+                            </span>
+
+                            <span class="badge rounded-0"
+                                  style="background: #8f2929; color: white;">
+                                {{ $movie->age_rating }}
+                            </span>
+
+                        </div>
+
+                        <div class="mb-3">
+                            <span class="text-muted small text-uppercase">
+                                Жанры
+                            </span>
+
+                            <div class="mt-2 d-flex flex-wrap gap-2">
+                                @forelse ($movie->genres as $genre)
+                                    <span class="badge rounded-0"
+                                          style="background: #252525; color: #d6d0c4; border: 1px solid #353535;">
+                                        {{ $genre->name }}
+                                    </span>
+                                @empty
+                                    <span class="text-muted">Не указаны</span>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <span class="text-muted small text-uppercase">
+                                О фильме
+                            </span>
+
+                            <p class="mt-2 mb-0" style="line-height: 1.7;">
+                                {{ $movie->description }}
+                            </p>
+                        </div>
+
+                        <hr style="border-color: #353535;">
+
+                        {{-- Расписание --}}
+                        <div class="mt-4">
+
+                            <h5 class="text-uppercase mb-3"
+                                style="letter-spacing: 1px;">
+                                Сеансы
+                            </h5>
+
+                            @forelse ($movie->screenings as $screening)
+
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 p-3 mb-2"
+                                     style="background: #252525; border-left: 3px solid #8f2929;">
+
+                                    <div>
+                                        <div class="fw-bold mb-1">
+                                            {{ $screening->start_time->format('d.m.Y H:i') }}
+                                        </div>
+
+                                        <div class="text-muted small">
+                                            Зал: {{ $screening->hall->name_hall ?? 'Не указан' }}
+                                            <span class="mx-2">|</span>
+                                            {{ $screening->format }}
+                                        </div>
+
+                                        <div class="mt-2 small">
+                                            {{ $screening->price }} руб.
+                                        </div>
+                                    </div>
+
+                                    <a href="{{ route('tickets.seats', $screening->id) }}"
+                                       class="btn btn-primary btn-sm px-3">
+                                        Выбрать места
+                                    </a>
+
+                                </div>
+
+                            @empty
+
+                                <p class="text-muted mb-0">
+                                    На данный момент будущих сеансов нет.
+                                </p>
+
+                            @endforelse
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
         </div>
 
-        <hr>
-
     @empty
-        <p>Пока фильмов нет.</p>
+
+        <div class="card p-5 text-center">
+            <h4>Афиша пока пуста</h4>
+            <p class="text-muted mb-0">
+                Скоро здесь появятся новые фильмы.
+            </p>
+        </div>
+
     @endforelse
 
 @endsection
