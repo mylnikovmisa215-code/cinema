@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Hall;
 use App\Models\Genre;
 use App\Models\Movie;
+use App\Models\MovieImage;
 use App\Models\Screening;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Carbon;
+use Throwable;
 
 class AdminController extends Controller
 {
@@ -84,7 +88,7 @@ class AdminController extends Controller
 
     public function movies()
     {
-        $movies = Movie::with('genres')->get();
+        $movies = Movie::with(['genres', 'images'])->get();
 
         return view('admin', compact('movies'));
     }
@@ -96,6 +100,20 @@ class AdminController extends Controller
             ->get();
 
         return view('admin', compact('screenings'));
+    }
+
+    // Просмотр всех забронированных билетов
+    public function tickets()
+    {
+        $tickets = Ticket::with([
+            'user',
+            'screening.movie',
+            'screening.hall',
+        ])
+            ->latest()
+            ->get();
+
+        return view('admin', compact('tickets'));
     }
 
     public function createMovie()
@@ -127,6 +145,9 @@ class AdminController extends Controller
             'age_rating' => 'required|in:0+,6+,12+,16+,18+',
             'trailer_url' => 'nullable|url',
 
+            // Постер фильма
+            'poster' => 'required|image|mimes:jpeg,png,webp|max:5120',
+
             // Данные первого сеанса
             'start_time' => 'required|date|after:now',
             'price' => 'required|numeric|min:0',
@@ -143,53 +164,76 @@ class AdminController extends Controller
                 ->withInput();
         }
 
-        DB::transaction(function () use ($validated) {
+        // Сохранение постера
+        $posterPath = $request->file('poster')->store('posters', 'public');
 
-            // Создание зала
-            $hall = Hall::create([
-                'name_hall' => $validated['name_hall'],
-                'rows_count' => intdiv(
-                    $validated['total_seats'],
-                    $validated['seats_per_row']
-                ),
-                'seats_count' => $validated['seats_per_row'],
-            ]);
+        try {
 
-            // Создание или поиск жанра
-            $genre = Genre::firstOrCreate([
-                'name' => $validated['genre_name'],
-            ]);
+            DB::transaction(function () use ($validated, $posterPath) {
 
-            // Создание фильма
-            $movie = Movie::create([
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'duration' => $validated['duration'],
-                'year' => $validated['year'],
-                'age_rating' => $validated['age_rating'],
-                'trailer_url' => $validated['trailer_url'] ?? null,
-            ]);
+                // Создание зала
+                $hall = Hall::create([
+                    'name_hall' => $validated['name_hall'],
+                    'rows_count' => intdiv(
+                        $validated['total_seats'],
+                        $validated['seats_per_row']
+                    ),
+                    'seats_count' => $validated['seats_per_row'],
+                ]);
 
-            // Привязка жанра к фильму
-            $movie->genres()->attach($genre->id);
+                // Создание или поиск жанра
+                $genre = Genre::firstOrCreate([
+                    'name' => $validated['genre_name'],
+                ]);
 
-            // Создание первого сеанса
-            Screening::create([
-                'movie_id' => $movie->id,
-                'hall_id' => $hall->id,
-                'start_time' => $validated['start_time'],
-                'price' => $validated['price'],
-                'format' => $validated['format'],
-            ]);
-        });
+                // Создание фильма
+                $movie = Movie::create([
+                    'title' => $validated['title'],
+                    'description' => $validated['description'],
+                    'duration' => $validated['duration'],
+                    'year' => $validated['year'],
+                    'age_rating' => $validated['age_rating'],
+                    'trailer_url' => $validated['trailer_url'] ?? null,
+                ]);
+
+                // Сохранение пути к постеру в movie_images
+                MovieImage::create([
+                    'movie_id' => $movie->id,
+                    'image_path' => $posterPath,
+                ]);
+
+                // Привязка жанра к фильму
+                $movie->genres()->attach($genre->id);
+
+                // Создание первого сеанса
+                Screening::create([
+                    'movie_id' => $movie->id,
+                    'hall_id' => $hall->id,
+                    'start_time' => $validated['start_time'],
+                    'price' => $validated['price'],
+                    'format' => $validated['format'],
+                ]);
+            });
+
+        } catch (Throwable $exception) {
+
+            // Удаление файла, если создание записей не удалось
+            Storage::disk('public')->delete($posterPath);
+
+            throw $exception;
+        }
 
         return redirect()
             ->route('admin.movies')
             ->with(
                 'success',
-                'Зал, жанр, фильм и первый сеанс успешно добавлены!'
+                'Зал, жанр, фильм, постер и первый сеанс успешно добавлены!'
             );
     }
+
+    // =====================================
+    // СЕАНСЫ
+    // =====================================
 
     // Форма добавления дополнительного сеанса
     public function createScreening()
@@ -216,13 +260,13 @@ class AdminController extends Controller
             $validated['movie_id'],
             $validated['start_time']
         )) {
-        return redirect()
-            ->back()
-            ->withErrors([
-                'start_time' => 'В выбранном зале уже есть сеанс, пересекающийся по времени с этим показом.'
-            ])
-            ->withInput();
-}
+            return redirect()
+                ->back()
+                ->withErrors([
+                    'start_time' => 'В выбранном зале уже есть сеанс, пересекающийся по времени с этим показом.'
+                ])
+                ->withInput();
+        }
 
         Screening::create($validated);
 
@@ -230,6 +274,7 @@ class AdminController extends Controller
             ->route('admin.screenings')
             ->with('success', 'Дополнительный сеанс успешно добавлен!');
     }
+
     // Проверка пересечения сеансов
     private function hasScreeningConflict($hallId, $movieId, $startTime)
     {
@@ -261,7 +306,9 @@ class AdminController extends Controller
         return false;
     }
 
-   
+    // =====================================
+    // УДАЛЕНИЕ
+    // =====================================
 
     public function destroyHall($id)
     {
@@ -291,6 +338,7 @@ class AdminController extends Controller
         }
 
         $movie->genres()->detach();
+
         $movie->delete();
 
         return redirect()

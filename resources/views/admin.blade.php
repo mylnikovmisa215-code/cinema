@@ -9,7 +9,8 @@
         <a href="{{ route('show.admin') }}">Главная</a> |
         <a href="{{ route('admin.movies') }}">Фильмы</a> |
         <a href="{{ route('admin.screenings') }}">Сеансы</a> |
-        <a href="{{ route('admin.screenings.create') }}">Добавить сеанс</a>
+        <a href="{{ route('admin.screenings.create') }}">Добавить сеанс</a> |
+        <a href="{{ route('admin.tickets') }}">Билеты</a>
     </nav>
 
     <br>
@@ -113,11 +114,16 @@
     @else
 
         {{-- Добавление фильма, зала и первого сеанса --}}
-        @if (!request()->routeIs('admin.screenings'))
+        @if (!request()->routeIs('admin.screenings')
+            && !request()->routeIs('admin.tickets'))
 
             <h2>Добавление фильма, зала и первого сеанса</h2>
 
-            <form action="{{ route('admin.movies.store') }}" method="POST">
+            <form
+                action="{{ route('admin.movies.store') }}"
+                method="POST"
+                enctype="multipart/form-data"
+            >
                 @csrf
 
                 <h3>Создание зала</h3>
@@ -169,6 +175,16 @@
                     type="text"
                     name="title"
                     value="{{ old('title') }}"
+                    required
+                >
+
+                <br><br>
+
+                <label>Постер фильма</label>
+                <input
+                    type="file"
+                    name="poster"
+                    accept="image/jpeg,image/png,image/webp"
                     required
                 >
 
@@ -276,6 +292,16 @@
                 <div>
                     <h3>{{ $movie->title }}</h3>
 
+                    @if ($movie->images->isNotEmpty())
+                        <img
+                            src="{{ asset('storage/' . $movie->images->first()->image_path) }}"
+                            alt="Постер фильма {{ $movie->title }}"
+                            width="180"
+                        >
+                    @else
+                        <p>Постер отсутствует</p>
+                    @endif
+
                     <p>Описание: {{ $movie->description }}</p>
                     <p>Длительность: {{ $movie->duration }} мин.</p>
                     <p>Год выпуска: {{ $movie->year }}</p>
@@ -346,6 +372,69 @@
             @empty
                 <p>Сеансов пока нет.</p>
             @endforelse
+
+        @endif
+
+        {{-- Список забронированных билетов --}}
+        @if (isset($tickets))
+
+            <h2>Забронированные билеты</h2>
+
+            @if ($tickets->isEmpty())
+
+                <p>Забронированных билетов пока нет.</p>
+
+            @else
+
+                <table border="1" cellpadding="10" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Фильм</th>
+                            <th>Дата сеанса</th>
+                            <th>Зал</th>
+                            <th>Пользователь</th>
+                            <th>Email</th>
+                            <th>Ряд</th>
+                            <th>Место</th>
+                            <th>Цена</th>
+                            <th>Оплата</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach ($tickets as $ticket)
+                            <tr>
+                                <td>{{ $ticket->screening->movie->title }}</td>
+
+                                <td>
+                                    {{ $ticket->screening->start_time->format('d.m.Y H:i') }}
+                                </td>
+
+                                <td>{{ $ticket->screening->hall->name_hall }}</td>
+
+                                <td>{{ $ticket->user->login }}</td>
+
+                                <td>{{ $ticket->user->email }}</td>
+
+                                <td>{{ $ticket->row }}</td>
+
+                                <td>{{ $ticket->seat }}</td>
+
+                                <td>{{ $ticket->screening->price }} руб.</td>
+
+                                <td>
+                                    @if ($ticket->is_paid)
+                                        <span style="color: green;">Оплачен</span>
+                                    @else
+                                        <span style="color: orange;">Ожидает оплаты</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+
+            @endif
 
         @endif
 
