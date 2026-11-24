@@ -1,16 +1,29 @@
+
 @extends('layout.index')
 
 @section('main')
 
+    {{-- Сообщения системы --}}
+    @foreach (['success', 'error', 'warning', 'info'] as $type)
+        @if (session($type))
+            <div class="alert alert-{{ $type === 'error' ? 'danger' : $type }} alert-dismissible fade show rounded-0 mb-4"
+                 role="alert">
+                {{ session($type) }}
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Закрыть">
+                </button>
+            </div>
+        @endif
+    @endforeach
+
     {{-- Заголовок --}}
     <div class="mb-5">
-        <p class="text-uppercase mb-2"
-           style="color: #8f2929; letter-spacing: 3px; font-size: 12px;">
-            Personal space
-        </p>
-
+        
         <h1 class="display-5 fw-bold">
-            Аккаунт<span style="color: #8f2929;">.</span>
+            Аккаунт
         </h1>
 
         <p class="text-muted">
@@ -59,7 +72,7 @@
                                 <div>
                                     <p class="text-uppercase mb-2"
                                        style="color: #8f2929; font-size: 11px; letter-spacing: 2px;">
-                                        Underground cinema / Ticket
+                                        Underground cinema / Билет
                                     </p>
 
                                     <h4 class="fw-bold mb-0">
@@ -138,7 +151,7 @@
                                 </span>
 
                                 <h4 class="fw-bold mb-0">
-                                    {{ $ticket->screening->price }} 
+                                    {{ $ticket->screening->price }}
                                     <span class="text-muted fs-6">руб.</span>
                                 </h4>
                             </div>

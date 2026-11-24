@@ -209,7 +209,7 @@
 
     <footer>
         <div class="container">
-            <p>UNDERGROUND CINEMA — INDEPENDENT MOVIE SPACE © 2026</p>
+            <p>Absolute Cinema — © 2026</p>
         </div>
     </footer>
 

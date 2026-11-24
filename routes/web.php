@@ -5,6 +5,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TicketController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Mail;
 
 Route::get('/', [UserController::class, 'showCatalog'])
     ->name('catalog');
@@ -58,16 +59,23 @@ Route::middleware('check.admin')->group(function () {
 
         // Сеансы
         Route::get('/screenings', [AdminController::class, 'screenings'])->name('screenings');
-
         Route::get('/screenings/create', [AdminController::class, 'createScreening'])->name('screenings.create');
-
         Route::post('/screenings', [AdminController::class, 'storeScreening'])->name('screenings.store');
 
         // Удаление
         Route::delete('/halls/{id}', [AdminController::class, 'destroyHall'])->name('halls.destroy');
-
         Route::delete('/movies/{id}', [AdminController::class, 'destroyMovie'])->name('movies.destroy');
-
         Route::delete('/screenings/{id}', [AdminController::class, 'destroyScreening'])->name('screenings.destroy');
     });
 });
+
+// ВРЕМЕННАЯ ПРОВЕРКА SMTP
+Route::get('/test-mail', function () {
+
+    Mail::raw('Это тестовое письмо из проекта UNDERGROUND CINEMA. SMTP работает!', function ($message) {
+        $message->to('student5@absolut-production.ru')
+            ->subject('Проверка SMTP');
+    });
+
+    return 'Тестовое письмо отправлено!';
+})->middleware(['auth', 'check.admin']);

@@ -7,8 +7,11 @@ use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Throwable;
 
 class TicketController extends Controller
 {
@@ -75,6 +78,7 @@ class TicketController extends Controller
                         'row' => $seat['row'],
                         'seat' => $seat['seat'],
                         'is_paid' => false,
+                        'unque_code' => (string) \Illuminate\Support\Str::uuid(),
                     ]);
                 }
             });
@@ -115,7 +119,7 @@ class TicketController extends Controller
             ->with('success', 'Бронирование успешно отменено.');
     }
 
-    // Имитация оплаты билета
+    // Оплата билета и отправка электронного билета с QR-кодом
     public function pay($id)
     {
         $ticket = Ticket::findOrFail($id);
@@ -130,12 +134,44 @@ class TicketController extends Controller
                 ->with('error', 'Этот билет уже оплачен.');
         }
 
-        $ticket->update([
-            'is_paid' => true,
+        $ticket->load([
+            'user',
+            'screening.movie',
+            'screening.hall',
         ]);
+
+        try {
+            // Генерируем QR-код из уникального кода билета
+            $qrCode = QrCode::format('png')
+                ->size(250)
+                ->errorCorrection('H')
+                ->generate($ticket->unque_code);
+
+            // Отправляем HTML-письмо с QR-кодом
+            Mail::send('emails.ticket', [
+                'ticket' => $ticket,
+                'qrCode' => $qrCode,
+            ], function ($message) use ($ticket) {
+                $message
+                    ->to($ticket->user->email)
+                    ->subject('Ваш билет — Absolute Cinema');
+            });
+
+            // Подтверждаем оплату после успешной отправки письма
+            $ticket->update([
+                'is_paid' => true,
+            ]);
+
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('show.profile')
+                ->with('warning', 'Не удалось обработать оплату или отправить электронный билет.');
+        }
 
         return redirect()
             ->route('show.profile')
-            ->with('success', 'Билет успешно оплачен!');
+            ->with('success', 'Билет оплачен! Электронный билет с QR-кодом отправлен на вашу почту.');
     }
 }
